@@ -1,145 +1,258 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import InputLabel from "@material-ui/core/InputLabel";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormControl from "@material-ui/core/FormControl";
-import Select from "@material-ui/core/Select";
-import InfoBox from "./InfoBox";
-import Map from "./Map";
-import { Card } from "@material-ui/core";
-import CardContent from "@material-ui/core/CardContent";
-import Table from "./Table";
-import { prettyPrintStat, sortData } from "./utils";
-import LineGraph from "./LineGraph";
-import "leaflet/dist/leaflet.css";
+import axios from "axios";
+import {
+  colorsType,
+  findMinMaxRange,
+  GreenRadio,
+  RedRadio,
+  YellowRadio,
+} from "./utils";
+import BarGraphPrice from "./BarGraphPrice";
+import BarGraphVolume from "./BarGraphVolume";
 
 function App() {
-  const [countries, setCountries] = useState(["USA", "UK", "INDIA"]);
-  const [country, setCountry] = useState("worldwide");
-  const [countryInfo, setCountryInfo] = useState({});
-  const [tableData, setTableData] = useState([]);
-  const [mapCenter, setMapCenter] = useState({ lat: 34.80746, lng: -40.4796 });
-  const [mapZoom, setMapZoom] = useState(3);
-  const [mapCountries, setMapCountries] = useState([]);
-  const [casesType, setCasesType] = useState("cases");
+  const [showHigherValue, setShowHigherValue] = useState(true);
+  const [showMinValue, setShowMinValue] = useState(true);
+  const [showAveValue, setShowAveValue] = useState(true);
 
-  const handleChange = (event) => {
-    const countryCode = event.target.value;
-    setCountry(countryCode);
-    const url =
-      countryCode === "worldwide"
-        ? "https://disease.sh/v3/covid-19/all"
-        : `https://disease.sh/v3/covid-19/countries/${countryCode}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        //console.log(data);
-        setCountryInfo(data);
-        setMapCenter([data.countryInfo.lat, data.countryInfo.long]);
-        setMapZoom(4);
+  const [maxValues, setMaxValues] = useState([
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+  ]);
+  const [minValues, setMinValues] = useState([
+    70,
+    80,
+    65,
+    45,
+    78,
+    78,
+    89,
+    45,
+    35,
+    78,
+  ]);
+  const [aveValues, setAveValues] = useState([
+    88,
+    67,
+    89,
+    79,
+    79,
+    98,
+    67,
+    88,
+    77,
+    66,
+  ]);
+  const [timeValues, setTimeValues] = useState([
+    88,
+    67,
+    89,
+    79,
+    79,
+    98,
+    67,
+    88,
+    77,
+    66,
+  ]);
+
+  function fetchData() {
+    axios
+      .get(
+        "https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=USD&limit=9"
+      )
+      .then((res) => {
+        console.log("server data", res.data);
+        const timeData = res.data.Data.Data.map((item) => item.time * 1000);
+        const highValues = res.data.Data.Data.map((item) => item.high);
+        const lowValues = res.data.Data.Data.map((item) => item.low);
+        const averageValues = res.data.Data.Data.map(
+          (item) => (item.high + item.low) / 2
+        );
+
+        setTimeValues(timeData);
+        setMaxValues(highValues);
+        setMinValues(lowValues);
+        setAveValues(averageValues);
+
+        localStorage.setItem(
+          "priceData",
+          JSON.stringify({
+            time: Date.now(),
+            timeData,
+            highValues,
+            lowValues,
+            averageValues,
+          })
+        );
       })
       .catch((err) => console.log(err));
-  };
+  }
 
   useEffect(() => {
-    fetch("https://disease.sh/v3/covid-19/all")
-      .then((res) => res.json())
-      .then((data) => {
-        // console.log(data);
-        setCountryInfo(data);
-      })
-      .catch((err) => console.log(err));
-  }, []);
-
-  useEffect(() => {
-    const getCountriesData = () => {
-      fetch("https://disease.sh/v3/covid-19/countries")
-        .then((res) => res.json())
-        .then((data) => {
-          // console.log(data);
-          setMapCountries(data);
-          setTableData(sortData(data));
-          setCountries(
-            data.map((country) => ({
-              name: country.country,
-              value: country.countryInfo.iso3,
-            }))
-          );
-        })
-        .catch((err) => console.log(err));
-    };
-    getCountriesData();
+    if (localStorage.getItem("priceData")) {
+      const priceData = JSON.parse(localStorage.getItem("priceData"));
+      const {
+        time,
+        timeData,
+        highValues,
+        lowValues,
+        averageValues,
+      } = priceData;
+      const cuurentTime = Date.now();
+      if (cuurentTime - time < 120000) {
+        console.log("cached data", priceData);
+        setTimeValues(timeData);
+        setMaxValues(highValues);
+        setMinValues(lowValues);
+        setAveValues(averageValues);
+      } else {
+        fetchData();
+      }
+    } else {
+      fetchData();
+    }
     return () => {};
   }, []);
 
+  // console.log(JSON.stringify({ time: Date.now() / 1000, value: 1200 }));
+  // console.log(Date.now());
+  // localStorage.setItem("bitcoin", "12");
+  // localStorage.setItem("bitcoin", "14");
+  // console.log(localStorage.getItem("bitcoin"));
+
+  let timeConstanst = timeValues.map((tc) => {
+    let d = new Date(tc);
+    return `${d.getHours()}:${d.getMinutes()}`;
+  });
+  const minMaxRange = findMinMaxRange(maxValues);
   return (
     <div className="app">
-      <div className="app__left">
-        <div className="app__header">
-          <h1>COVID-19 TRACKER</h1>
-          <FormControl variant="outlined" className="app__dropdown">
-            <InputLabel id="demo-simple-select-outlined-label">
-              Country
-            </InputLabel>
-            <Select
-              labelId="demo-simple-select-outlined-label"
-              value={country}
-              onChange={handleChange}
-              label="country"
-            >
-              <MenuItem value="worldwide">Worldwide</MenuItem>
-              {countries.map((country, idx) => (
-                <MenuItem key={idx} value={country.value}>
-                  {country.name}
-                </MenuItem>
-              ))}
-              }
-            </Select>
-          </FormControl>
+      <div className="app__top">
+        <div className="graph__container__volume">
+          <BarGraphVolume />
         </div>
-
-        <div className="app__stats">
-          <InfoBox
-            isRed
-            active={casesType === "cases"}
-            onClick={(e) => setCasesType("cases")}
-            title="Coronavirus Cases"
-            cases={prettyPrintStat(countryInfo.todayCases)}
-            total={countryInfo.cases}
-          />
-          <InfoBox
-            active={casesType === "recovered"}
-            onClick={(e) => setCasesType("recovered")}
-            title="Recovered"
-            cases={prettyPrintStat(countryInfo.todayRecovered)}
-            total={countryInfo.recovered}
-          />
-
-          <InfoBox
-            isRed
-            active={casesType === "deaths"}
-            onClick={(e) => setCasesType("deaths")}
-            title="Deaths"
-            cases={prettyPrintStat(countryInfo.todayDeaths)}
-            total={countryInfo.deaths}
+        <div className="graph__container__price">
+          <BarGraphPrice
+            showHigherValue={showHigherValue}
+            setShowHigherValue={setShowHigherValue}
+            showMinValue={showMinValue}
+            setShowMinValue={setShowMinValue}
+            showAveValue={showAveValue}
+            setShowAveValue={setShowAveValue}
+            maxValues={maxValues}
+            minValues={minValues}
+            aveValues={aveValues}
+            timeValues={timeValues}
           />
         </div>
-
-        <Map
-          casesType={casesType}
-          countries={mapCountries}
-          zoom={mapZoom}
-          center={mapCenter}
-        />
       </div>
-      <Card className="app__right">
-        <CardContent>
-          <h3>Live Cases by Country</h3>
-          <Table countries={tableData} />
-          <h3 className="graph__title">Worldwide new {casesType}</h3>
+
+      <div className="app__bottom">
+        <h3>Indexes</h3>
+        <div className="graph__container__index">
+          <div className="graph__container__index__select">
+            <div className="graph__container__index__select__option">
+              {/* <input
+                type="checkbox"
+                name=""
+                id=""
+                onChange={() => setShowHigherValue(!showHigherValue)}
+                checked={showHigherValue}
+              />
+              <div
+                className="circle"
+                style={{ backgroundColor: colorsType.max }}
+              ></div> */}
+              <GreenRadio
+                checked={showHigherValue}
+                onChange={() => setShowHigherValue(!showHigherValue)}
+                name="radio-button-higher"
+                inputProps={{ "aria-label": `111` }}
+                onClick={() => setShowHigherValue(!showHigherValue)}
+              />
+              Higher
+            </div>
+            <div className="graph__container__index__select__option">
+              {/* <input
+                type="checkbox"
+                name=""
+                id=""
+                onChange={() => setShowAveValue(!showAveValue)}
+                checked={showAveValue}
+              />
+              <div
+                className="circle"
+                style={{ backgroundColor: colorsType.ave }}
+              ></div> */}
+              <YellowRadio
+                checked={showAveValue}
+                onChange={() => setShowAveValue(!showAveValue)}
+                name="radio-button-ave"
+                inputProps={{ "aria-label": `112` }}
+                onClick={() => setShowAveValue(!showAveValue)}
+              />
+              Average
+            </div>
+            <div className="graph__container__index__select__option">
+              {/* <input
+                type="checkbox"
+                name=""
+                id=""
+                onChange={() => setShowMinValue(!showMinValue)}
+                checked={showMinValue}
+              />
+              <div
+                className="circle"
+                style={{ backgroundColor: colorsType.min }}
+              ></div> */}
+              <RedRadio
+                checked={showMinValue}
+                onChange={() => setShowMinValue(!showMinValue)}
+                onClick={() => setShowMinValue(!showMinValue)}
+                name="radio-button-red"
+                inputProps={{ "aria-label": `113` }}
+              />
+              Lower
+            </div>
+          </div>
+          <div
+            className="graph__container__index__info"
+            style={{ color: colorsType.min }}
+          >
+            <h5>Maximum range:</h5>
+            <h5>
+              {timeConstanst[minMaxRange.maxIndex]} to{" "}
+              {timeConstanst[minMaxRange.maxIndex + 1]}
+            </h5>
+          </div>
+          <div
+            className="graph__container__index__info"
+            style={{ color: colorsType.max }}
+          >
+            <h5>Minimum range:</h5>
+            <h5>
+              {timeConstanst[minMaxRange.minIndex]} to{" "}
+              {timeConstanst[minMaxRange.minIndex + 1]}
+            </h5>
+          </div>
+        </div>
+      </div>
+
+      {/* <h3 className="graph__title">Worldwide new {casesType}</h3>
           <LineGraph casesType={casesType} />
-        </CardContent>
-      </Card>
+
+          <h3>Bar Graph Test</h3>
+          <BarGraph /> */}
     </div>
   );
 }

@@ -1,70 +1,77 @@
 import React from "react";
-import numeral from "numeral";
-import { Circle, Popup } from "react-leaflet";
+import { withStyles } from "@material-ui/core/styles";
+import Radio from "@material-ui/core/Radio";
 
-const casesTypeColors = {
-  cases: {
-    hex: "#CC1034",
-    rgb: "rgb(204,16,52)",
-    half_op: "rgba(204,16,52,.5)",
-    multiplier: 800,
-  },
-  recovered: {
-    hex: "#7dd71d",
-    rgb: "rgb(125,215,29)",
-    half_op: "rgba(125,215,29,.5)",
-    multiplier: 1200,
-  },
-  deaths: {
-    hex: "#fb4443",
-    rgb: "rgb(251,68,67)",
-    half_op: "rgba(251,68,67,.5)",
-    multiplier: 2000,
-  },
+// define diffrent colors for simplicity changing colors
+export const colorsType = {
+  max: "rgba(35, 170, 119,1)",
+  maxHover: "rgba(35, 170, 119,.5)",
+  min: "rgba(242, 21, 21,1)",
+  minHover: "rgba(242, 21, 21,.5)",
+  ave: "rgb(229, 222, 11)",
+  aveHover: "rgba(229, 222, 11,.5)",
 };
-export const sortData = (data) => {
-  const sortedData = [...data];
-  return sortedData.sort((a, b) => b.cases - a.cases);
-};
-export const prettyPrintStat = (stat) =>
-  stat ? `+${numeral(stat).format("0.0a")}` : "";
 
-export const showDataOnMap = (data, casesType = "cases") => {
-  //console.log(data);
+// use Material-Ui for making Radio buttons
+export const GreenRadio = withStyles({
+  root: {
+    color: colorsType.max,
+    padding: 1,
+    "&$checked": {
+      color: colorsType.max,
+    },
+  },
+  checked: {},
+})((props) => <Radio color="default" {...props} />);
+export const YellowRadio = withStyles({
+  root: {
+    color: colorsType.ave,
+    padding: 1,
+    "&$checked": {
+      color: colorsType.ave,
+    },
+  },
+  checked: {},
+})((props) => <Radio color="default" {...props} />);
 
-  return data.map((country) => {
-    return (
-      <Circle
-        key={country.country}
-        center={[country.countryInfo.lat, country.countryInfo.long]}
-        fillOpacity={0.4}
-        color={casesTypeColors[casesType].hex}
-        fillColor={casesTypeColors[casesType].hex}
-        radius={
-          Math.sqrt(country[casesType]) * casesTypeColors[casesType].multiplier
-        }
-      >
-        <Popup>
-          <div className="info__container">
-            <div
-              className="info__flag"
-              style={{
-                backgroundImage: `url(${country.countryInfo.flag})`,
-              }}
-            />
-            <div className="info__name">{country.country}</div>
-            <div className="info__confirmed">
-              Cases: {numeral(country.cases).format("0,0")}
-            </div>
-            <div className="info__recovered">
-              Recovered: {numeral(country.recovered).format("0,0")}{" "}
-            </div>
-            <div className="info__deaths">
-              Deaths: {numeral(country.deaths).format("0,0")}
-            </div>
-          </div>
-        </Popup>
-      </Circle>
-    );
+export const RedRadio = withStyles({
+  root: {
+    color: colorsType.min,
+    padding: 1,
+    "&$checked": {
+      color: colorsType.min,
+    },
+  },
+  checked: {},
+})((props) => <Radio color="default" {...props} />);
+
+// find minimum and maximum value of array with their index
+export function findMinMaxRange(values) {
+  let diff = [];
+  for (let index = 1; index < values.length; index++) {
+    diff.push(Math.abs(values[index] - values[index - 1]));
+  }
+  let sortedDiff = [...diff].sort((a, b) => a - b);
+  const maxRange = sortedDiff[diff.length - 1];
+  const minRange = sortedDiff[0];
+  const maxIndex = diff.indexOf(maxRange);
+  const minIndex = diff.indexOf(minRange);
+  return {
+    maxRange,
+    minRange,
+    maxIndex,
+    minIndex,
+  };
+}
+// format time data in hr:min
+export const formatTimeData = (times) => {
+  return times.map((tc) => {
+    let d = new Date(tc);
+    return `${d.getHours()}:${d.getMinutes()}`;
   });
+};
+
+// sort an array in descending format
+export const sortData = (arrayData) => {
+  return [...arrayData].sort((a, b) => a - b);
 };
