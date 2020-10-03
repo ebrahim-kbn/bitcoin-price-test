@@ -65,6 +65,7 @@ function App() {
     66,
   ]);
 
+  //sending request
   function fetchData() {
     axios
       .get(
@@ -124,12 +125,6 @@ function App() {
     return () => {};
   }, []);
 
-  // console.log(JSON.stringify({ time: Date.now() / 1000, value: 1200 }));
-  // console.log(Date.now());
-  // localStorage.setItem("bitcoin", "12");
-  // localStorage.setItem("bitcoin", "14");
-  // console.log(localStorage.getItem("bitcoin"));
-
   let timeConstanst = timeValues.map((tc) => {
     let d = new Date(tc);
     return `${d.getHours()}:${d.getMinutes()}`;
@@ -162,17 +157,6 @@ function App() {
         <div className="graph__container__index">
           <div className="graph__container__index__select">
             <div className="graph__container__index__select__option">
-              {/* <input
-                type="checkbox"
-                name=""
-                id=""
-                onChange={() => setShowHigherValue(!showHigherValue)}
-                checked={showHigherValue}
-              />
-              <div
-                className="circle"
-                style={{ backgroundColor: colorsType.max }}
-              ></div> */}
               <GreenRadio
                 checked={showHigherValue}
                 onChange={() => setShowHigherValue(!showHigherValue)}
@@ -183,17 +167,6 @@ function App() {
               Higher
             </div>
             <div className="graph__container__index__select__option">
-              {/* <input
-                type="checkbox"
-                name=""
-                id=""
-                onChange={() => setShowAveValue(!showAveValue)}
-                checked={showAveValue}
-              />
-              <div
-                className="circle"
-                style={{ backgroundColor: colorsType.ave }}
-              ></div> */}
               <YellowRadio
                 checked={showAveValue}
                 onChange={() => setShowAveValue(!showAveValue)}
@@ -204,17 +177,6 @@ function App() {
               Average
             </div>
             <div className="graph__container__index__select__option">
-              {/* <input
-                type="checkbox"
-                name=""
-                id=""
-                onChange={() => setShowMinValue(!showMinValue)}
-                checked={showMinValue}
-              />
-              <div
-                className="circle"
-                style={{ backgroundColor: colorsType.min }}
-              ></div> */}
               <RedRadio
                 checked={showMinValue}
                 onChange={() => setShowMinValue(!showMinValue)}
@@ -247,12 +209,6 @@ function App() {
           </div>
         </div>
       </div>
-
-      {/* <h3 className="graph__title">Worldwide new {casesType}</h3>
-          <LineGraph casesType={casesType} />
-
-          <h3>Bar Graph Test</h3>
-          <BarGraph /> */}
     </div>
   );
 }
